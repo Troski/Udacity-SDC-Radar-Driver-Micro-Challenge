@@ -29,7 +29,6 @@ class RadarDataParser():
         self.radar_tracks_dictionary = {}
         self.debug = debug
         self.msg_counter = 0 # Variable that keeps track of the iteration of msg 1344 we are on
-        self.tracks = RadarTrackArray
 
     def parseMessage(self, msgId, rawmsg, dlc, flg, time):
         msgToFunc = {
@@ -148,14 +147,14 @@ class RadarDataParser():
         # """ message ID 500-53F or 1280-1343 """
         track_id = str(msgId-idBase)
         status = ((msg[1] & 0xE0) >> 5)
-        if (status < 2 or status > 3):
+        if status != 3:
             return
 
         self.data[track_id + "_track_oncoming"] = (msg[0] & 0x01)
         self.data[track_id + "_track_group_changed"] = ((msg[0] & 0x02) >> 1)
         self.data[track_id + "_track_lat_rate"] = ((msg[0] & 0xFC) >> 2)
         self.data[track_id + "_track_status"] = ((msg[1] & 0xE0) >> 5)
-        self.data[track_id + "_track_angle"] = (((msg[1] & 0x1F) << 5) | ((msg[2] & 0xF8) >> 3)) # Spans multiple bytes
+        self.data[track_id + "_track_angle"] = (((msg[1] & 0x1F) << 5) | ((msg[2] & 0xF8) >> 3)) # Spans multiple bytes #tenth of degree?
         self.data[track_id + "_track_range"] = (((msg[2] & 0x07) << 8) | msg[3]) # Spans multiple bytes given in cms.
         self.data[track_id + "_track_bridge"] = ((msg[4] & 0x80) >> 7)
         self.data[track_id + "_track_rolling_count"] = ((msg[4] & 0x40) >> 6)
@@ -169,14 +168,14 @@ class RadarDataParser():
         current_track.track_group_changed = ((msg[0] & 0x02) >> 1)
         current_track.track_lat_rate = ((msg[0] & 0xFC) >> 2)
         current_track.track_status = ((msg[1] & 0xE0) >> 5)
-        current_track.track_angle = float((((msg[1] & 0x1F) << 5) | ((msg[2] & 0xF8) >> 3)))# Spans multiple bytes
-        current_track.track_range = (((msg[2] & 0x07) << 8) | msg[3]) / 100 #converting from cm to m
+        current_track.track_angle = float((((msg[1] & 0x1F) << 5) | ((msg[2] & 0xF8) >> 3)))/10 * math.pi/180 #convert to radians?
+        current_track.track_range = float(((msg[2] & 0x07) << 8) | msg[3]) / 100 #converting from cm to m
         current_track.track_bridge_object = ((msg[4] & 0x80) >> 7)
         current_track.track_rolling_count = ((msg[4] & 0x40) >> 6)
         current_track.track_width = ((msg[4] & 0x3C) >> 2)
         current_track.track_range_accel = (((msg[4] & 0x03) << 8) | msg[5]) # Spans multiple bytes
         current_track.track_med_range_mode = ((msg[6] & 0xC0) >> 6)
-        current_track.track_range_rate = float((((msg[6] & 0x3F) << 8) | msg[7])-16379.0) #substract offset of 16379
+        current_track.track_range_rate = float((((msg[6] & 0x3F) << 8) | msg[7])-16381.0) #substract offset of 16381
 
         self.radar_tracks_dictionary[track_id] = current_track
 
@@ -427,9 +426,8 @@ if __name__ == "__main__":
                 str_tracks_pub.publish(json.dumps(radarData))
 
             for x in radar.radar_tracks_dictionary:
-                if radar.radar_tracks_dictionary[x].track_range > 2.50 and radar.radar_tracks_dictionary[x].track_range < 2.90:
-                    if radar.radar_tracks_dictionary[x].track_angle <  5.0:
-                        esr_tracks_pub.publish(radar.radar_tracks_dictionary[x])
+                if radar.radar_tracks_dictionary[x].track_range < 0.8:
+                    esr_tracks_pub.publish(radar.radar_tracks_dictionary[x])
 
         except (canlib.canNoMsg) as ex:
             pass
