@@ -416,6 +416,7 @@ if __name__ == "__main__":
 
     str_tracks_pub = rospy.Publisher('esr_front', std_msgs.msg.String, queue_size=10)
     esr_tracks_pub = rospy.Publisher('esr_tracks', EsrTrack, queue_size=255)
+    viz_tracks_markers_pub = rospy.Publisher('tracks_viz', visualization_msgs.msg.MarkerArray, queue_size=10)
 
     tracks_markers_list = visualization_msgs.msg.MarkerArray()
     track_marker = visualization_msgs.msg.Marker()
@@ -427,10 +428,18 @@ if __name__ == "__main__":
     track_marker.scale.y = 0.2
     track_marker.scale.z = 1.0
 
+    track_marker.pose.orientation.w = 1.0
+    track_marker.pose.orientation.x = 1.0
+    track_marker.pose.orientation.y = 1.0
+    track_marker.pose.orientation.z = 1.0
+
+
     track_marker.color.a = 1.0;
     track_marker.color.r = 0.0;
     track_marker.color.g = 1.0;
     track_marker.color.b = 0.0;
+
+    track_marker.header.frame_id = "/esr_1"
 
 
     r = rospy.Rate(10)
@@ -443,9 +452,14 @@ if __name__ == "__main__":
             if len(radarData) > 0:
                 str_tracks_pub.publish(json.dumps(radarData))
 
-            for x in radar.radar_tracks_dictionary:
-                    esr_tracks_pub.publish(radar.radar_tracks_dictionary[x])
-
+            for track in radar.radar_tracks_dictionary:
+                    esr_tracks_pub.publish(radar.radar_tracks_dictionary[track])
+                    track_marker.id = radar.radar_tracks_dictionary[track].track_ID
+                    track_marker.header.stamp = rospy.Time.now()
+                    track_marker.pose.position.x = radar.radar_tracks_dictionary[track].track_range * math.cos(radar.radar_tracks_dictionary[track].track_angle)
+                    track_marker.pose.position.y = radar.radar_tracks_dictionary[track].track_range * math.sin(radar.radar_tracks_dictionary[track].track_angle)
+                    track_marker.pose.position.z = 0.5
+                    tracks_markers_list.markers.append(track_marker)
 
 
 
