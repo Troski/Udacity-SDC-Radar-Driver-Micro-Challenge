@@ -19,6 +19,8 @@ import math
 from radar_msgs.msg import RadarTrack
 from radar_msgs.msg import RadarTrackArray
 from delphi_esr_msgs.msg import EsrTrack
+import visualization_msgs.msg
+
 
 idBase = 1279
 
@@ -415,6 +417,22 @@ if __name__ == "__main__":
     str_tracks_pub = rospy.Publisher('esr_front', std_msgs.msg.String, queue_size=10)
     esr_tracks_pub = rospy.Publisher('esr_tracks', EsrTrack, queue_size=255)
 
+    tracks_markers_list = visualization_msgs.msg.MarkerArray()
+    track_marker = visualization_msgs.msg.Marker()
+
+    track_marker.type = track_marker.CUBE;
+    track_marker.action = track_marker.ADD;
+
+    track_marker.scale.x = 0.01
+    track_marker.scale.y = 0.2
+    track_marker.scale.z = 1.0
+
+    track_marker.color.a = 1.0;
+    track_marker.color.r = 0.0;
+    track_marker.color.g = 1.0;
+    track_marker.color.b = 0.0;
+
+
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
         try:
@@ -426,8 +444,10 @@ if __name__ == "__main__":
                 str_tracks_pub.publish(json.dumps(radarData))
 
             for x in radar.radar_tracks_dictionary:
-                if radar.radar_tracks_dictionary[x].track_range < 0.8:
                     esr_tracks_pub.publish(radar.radar_tracks_dictionary[x])
+
+
+
 
         except (canlib.canNoMsg) as ex:
             pass
